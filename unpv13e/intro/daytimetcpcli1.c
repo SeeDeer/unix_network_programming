@@ -1,7 +1,15 @@
+/*****************************************************************
+ * @File: Do not edit
+ * @Author: LinusZhao
+ * @Date: 2019-08-24 21:31:28
+ * @LastEditors: LinusZhao
+ * @LastEditTime: 2019-08-24 21:31:28
+ * @Description: Do not edit
+ *****************************************************************/
+
 #include	"unp.h"
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int					sockfd, n, counter = 0;
 	char				recvline[MAXLINE + 1];

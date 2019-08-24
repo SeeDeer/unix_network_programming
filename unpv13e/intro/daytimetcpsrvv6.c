@@ -1,8 +1,15 @@
+/*****************************************************************
+ * @File: unix_network_programming/unpv13e/intro/daytimetcpsrvv6.c
+ * @Author: LinusZhao
+ * @Date: 2019-08-24 21:28:58
+ * @LastEditors: LinusZhao
+ * @LastEditTime: 2019-08-24 21:30:12
+ * @Description: 基于ipv6的tcp客户端程序
+ *****************************************************************/
 #include	"unp.h"
 #include	<time.h>
 
-int
-main(int argc, char **argv)
+int　main(int argc, char **argv)
 {
 	int					listenfd, connfd;
 	socklen_t			len;
