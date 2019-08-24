@@ -1,3 +1,15 @@
+# UNIX Network Programming
+
+感谢 W. Richard Stevens编辑的经典书籍 
+
+http://www.kohala.com/start/
+
+http://www.unpbook.com/
+
+docs/UNIX Network Programming Volume.1.3rd.Ed 英文书籍原版
+
+unpv13e.tar.gz 为书籍源码
+
 ## 快速入门
 参考文件 unpv13e/README
 
