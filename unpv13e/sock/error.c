@@ -94,7 +94,7 @@ err_doit(int errnoflag, const char *fmt, va_list ap)
 	errno_save = errno;		/* value caller might want printed */
 	vsprintf(buf, fmt, ap);
 	if (errnoflag)
-		sprintf(buf+strlen(buf), ": %s", strerror(errno_save));
+		sprintf(buf+strlen(buf), ": %s errno:%d", strerror(errno_save));
 	strcat(buf, "\n");
 	fflush(stdout);		/* in case stdout and stderr are the same */
 	fputs(buf, stderr);
