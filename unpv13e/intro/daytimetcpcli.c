@@ -3,7 +3,7 @@
  * @Author: LinusZhao
  * @Date: 2019-08-24 21:30:28
  * @LastEditors: LinusZhao
- * @LastEditTime: 2019-08-25 23:40:50
+ * @LastEditTime: 2019-08-26 18:00:34
  * @Description: 基于ipv4的tcp客户端程序
  *****************************************************************/
 
@@ -30,24 +30,23 @@ int main(int argc, char **argv)
 		err_sys("socket error");
 
 	socklen_t optlen = sizeof(timeo);
-	timeo.tv_sec = 25;
-	if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, optlen) < 0)
-		err_sys("SO_SNDTIMEO setsockopt error");
+	// timeo.tv_sec = 30;
+	// if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, optlen) < 0)
+	// 	err_sys("SO_SNDTIMEO setsockopt error");
 	
-	optlen = sizeof(timeo);
-	if (getsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, &optlen) < 0)
-		err_sys("SO_SNDTIMEO getsockopt error");
-	printf("socket send timeout = %ld.%ld\n", timeo.tv_sec, timeo.tv_usec*1000);
+	// optlen = sizeof(timeo);
+	// if (getsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, &optlen) < 0)
+	// 	err_sys("SO_SNDTIMEO getsockopt error");
+	// printf("socket send timeout = %ld.%ld\n", timeo.tv_sec, timeo.tv_usec*1000);
 
-	// 接口超时时间还是不变,重试次数4次,不变  ??
-	int syn_cnt = 10; 
-	if (setsockopt(sockfd,IPPROTO_TCP,TCP_SYNCNT,&syn_cnt, sizeof(syn_cnt)) < 0)
-		err_sys("TCP_SYNCNT setsockopt error");
+	// int syn_cnt = 10; 
+	// if (setsockopt(sockfd,IPPROTO_TCP,TCP_SYNCNT,&syn_cnt, sizeof(syn_cnt)) < 0)
+	// 	err_sys("TCP_SYNCNT setsockopt error");
 
-	optlen = sizeof(syn_cnt);
-	if (getsockopt(sockfd,IPPROTO_TCP,TCP_SYNCNT,&syn_cnt, &optlen) < 0)
-		err_sys("TCP_SYNCNT getsockopt error");
-	printf("TCP_SYNCNT getsockopt = %d\n", syn_cnt);
+	// optlen = sizeof(syn_cnt);
+	// if (getsockopt(sockfd,IPPROTO_TCP,TCP_SYNCNT,&syn_cnt, &optlen) < 0)
+	// 	err_sys("TCP_SYNCNT getsockopt error");
+	// printf("TCP_SYNCNT getsockopt = %d\n", syn_cnt);
 
 	bzero(&servaddr, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -63,7 +62,7 @@ int main(int argc, char **argv)
 		err_sys("connect error");
 	}
 	
-	while ( (n = read(sockfd, recvline, 10)) > 0) {
+	while ( (n = read(sockfd, recvline, MAXLINE)) > 0) {
 		count++;
 		recvline[n] = 0;	/* null terminate */
 		if (fputs(recvline, stdout) == EOF)
@@ -72,6 +71,8 @@ int main(int argc, char **argv)
 	printf("read count:%d\n",count);
 	if (n < 0)
 		err_sys("read error");
+
+	close(sockfd);
 
 	exit(0);
 }
