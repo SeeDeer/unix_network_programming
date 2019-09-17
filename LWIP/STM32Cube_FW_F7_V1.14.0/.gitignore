@@ -3,7 +3,7 @@ Documentation
 
 Drivers/BSP/Adafruit_Shield
 Drivers/BSP/Components
-Drivers/BSP/STM32F7xx_Nucleo_144
+# Drivers/BSP/STM32F7xx_Nucleo_144
 Drivers/CMSIS/DSP_Lib
 
 Middlewares/ST
