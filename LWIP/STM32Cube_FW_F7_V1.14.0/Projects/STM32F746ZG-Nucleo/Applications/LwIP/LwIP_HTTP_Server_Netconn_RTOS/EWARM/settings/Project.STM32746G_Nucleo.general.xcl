@@ -1,0 +1,21 @@
+"D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\bin\armproc.dll" 
+
+"D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\bin\armstlink2.dll" 
+
+"G:\LINUSZ\NUCLEO-F746ZG\STM32Cube_FW_F7_V1.14.0\Projects\STM32F746ZG-Nucleo\Applications\LwIP\LwIP_HTTP_Server_Netconn_RTOS\EWARM\STM32746G_Nucleo\Exe\Project.out" 
+
+--plugin="D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\bin\armbat.dll" 
+
+--device_macro="D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\config\debugger\ST\STM32F7xx.dmac" 
+
+--device_macro="D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\config\debugger\ST\STM32F7xx_DBG.dmac" 
+
+--device_macro="D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\config\debugger\ST\STM32F7xx_OB.dmac" 
+
+--device_macro="D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\config\debugger\ST\STM32F7xx_TRACE.dmac" 
+
+--flash_loader="D:\Program Files (x86)\IAR Systems\Embedded Workbench 8.3\arm\config\flashloader\ST\FlashSTM32F74xxG.board" 
+
+
+
+
