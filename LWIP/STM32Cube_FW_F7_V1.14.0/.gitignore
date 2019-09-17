@@ -1,11 +1,11 @@
 _htmresc
 Documentation
+
 Drivers/BSP/Adafruit_Shield
 Drivers/BSP/Components
 Drivers/BSP/STM32F7xx_Nucleo_144
 Drivers/CMSIS/DSP_Lib
 
-Middlewares
 Middlewares/ST
 Middlewares/Third_Party/FatFs
 Middlewares/Third_Party/LibJPEG
