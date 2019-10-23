@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/samba_share/LinusZhao/unix_network_programming/examples/tcp_serve/src/main.c
+sys/types.h
+-
+sys/socket.h
+-
+sys/time.h
+-
+netinet/in.h
+-
+arpa/inet.h
+-
+time.h
+-
+string.h
+-
+stdio.h
+-
+unistd.h
+-
+stdlib.h
+-
+
