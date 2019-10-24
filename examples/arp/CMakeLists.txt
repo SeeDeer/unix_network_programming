@@ -1,16 +1,16 @@
 cmake_minimum_required (VERSION 2.6)
-project (tcp_serve)
+project (arp)
 
 # 包含头文件
-include_directories(./include)
+include_directories(../common)
 
 # 包含库
 
 # 包含源文件
-# set(CFILE_SRC src/main.c)
-# set(CFILE_SRC ${CFILE_SRC} main.c)
-
 aux_source_directory(./src CFILE_SRC)
+set(CFILE_SRC ${CFILE_SRC} ../common/iot_log.c)
+
+
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -g)
 
-add_executable(tcp_serve ${CFILE_SRC})
+add_executable(arp ${CFILE_SRC})
