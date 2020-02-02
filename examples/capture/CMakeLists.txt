@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (arp)
+project (capture)
 
 # 包含头文件
 include_directories(../common)
